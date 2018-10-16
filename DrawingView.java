@@ -13,6 +13,10 @@ import android.graphics.PorterDuff;
 import android.graphics.PorterDuffXfermode;
 import android.util.TypedValue;
 
+import java.util.ArrayList;
+
+import static android.graphics.Color.WHITE;
+
 public class DrawingView extends View {
     //drawing path
     private Path drawPath;
@@ -20,8 +24,9 @@ public class DrawingView extends View {
     private Paint drawPaint, canvasPaint;
     //initial color
     private int paintColor = 0xFF660000;
-    private String text;
-    private String input;
+    private String input = "";
+    private ArrayList<String> text = new ArrayList<>();
+    private ArrayList<float[]> coordinates= new ArrayList<>();
     //canvas
     private Canvas drawCanvas;
     //canvas bitmap
@@ -59,12 +64,13 @@ public class DrawingView extends View {
     protected void onDraw(Canvas canvas) {
 //draw view
         canvas.drawBitmap(canvasBitmap, 0, 0, canvasPaint);
-        if (!isText) {
             canvas.drawPath(drawPath, drawPaint);
-        }
-        else{
-            canvas.drawText(text, touchX, touchY, drawPaint);
-        }
+            for (int i=0; i<text.size(); i++) {
+                Paint textPaint = new Paint();
+                textPaint.setTextSize(50);
+                textPaint.setColor(paintColor);
+                canvas.drawText(text.get(i), coordinates.get(i)[0], coordinates.get(i)[1],textPaint);
+            }
     }
     @Override
     public boolean onTouchEvent(MotionEvent event) {
@@ -88,19 +94,22 @@ public class DrawingView extends View {
             }
         }
         else {
-            text = input;
+            text.add(input);
+            float[] points = {touchX, touchY};
+            coordinates.add(points);
         }
         invalidate();
         return true;
     }
     public void startNew(){
         drawCanvas.drawColor(0, PorterDuff.Mode.CLEAR);
+        text.clear();
+        input = "";
         invalidate();
     }
     public void setText(String inputText){
         isText = true;
         input = inputText;
-        drawPaint.setTextSize(10);
     }
     public void setBrushSize(float newSize){
 //update size
@@ -125,7 +134,7 @@ public class DrawingView extends View {
     public void setErase(boolean isErase){
 //set erase true or false
         erase=isErase;
-        if(erase) drawPaint.setXfermode(new PorterDuffXfermode(PorterDuff.Mode.CLEAR));
-        else drawPaint.setXfermode(null);
+        if(erase) drawPaint.setColor(Color.WHITE);
+        else drawPaint.setColor(paintColor);
     }
 }
