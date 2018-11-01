@@ -1,17 +1,22 @@
 package com.example.liesel.basicdrawingapp;
 
+import android.bluetooth.BluetoothClass;
+import android.content.Context;
+import android.os.RemoteException;
+import android.provider.Settings;
 import android.support.v7.app.AppCompatActivity;
-//import android.service.collaboroid.CollaboRoidManager;
-//import android.service.remote.RemoteServiceManager;
-//import android.service.remote.RemoteRequest;
+import android.service.collaboroid.CollaboRoidManager;
+import android.service.remote.RemoteServiceManager;
+import android.service.remote.RemoteRequest;
 import android.os.Bundle;
-//import android.os.ServiceManager;
+import android.os.ServiceManager;
 import android.util.Log;
 import android.view.View;
 import android.widget.Button;
-import android.widget.EditText;
 import android.widget.ImageButton;
 import android.widget.LinearLayout;
+
+import java.util.ArrayList;
 import java.util.UUID;
 import android.provider.MediaStore;
 import android.app.AlertDialog;
@@ -21,21 +26,23 @@ import android.view.View.OnClickListener;
 import android.widget.Toast;
 
 public class MainActivity extends AppCompatActivity implements OnClickListener{
+    private Context mContext;
     private DrawingView drawView;
     private ImageButton currPaint, drawBtn, eraseBtn, newBtn, saveBtn;
     private float smallBrush, mediumBrush, largeBrush;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
+        mContext = getApplicationContext();
+
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
-        /*final RemoteServiceManager mService = (RemoteServiceManager) getSystemService(Context.REMOTE_SERVICE);
-        try{
-            mService.sendAllrequest(new RemoteRequest("request", "dummyApp", new ArrayList<Object>()));;
-        } catch(Exception e){
-            e.printStackTrace();
-        }*/
+        RemoteServiceManager rrm = (RemoteServiceManager)getSystemService(Context.REMOTE_SERVICE);
+        //rrm.startServer();
+        //setRemoteRequestServerOn(true);
+        //requires surface provider
         drawView = (DrawingView)findViewById(R.id.drawing);
+        drawView.setContext(this);
         drawView.setBrushSize(mediumBrush);
         LinearLayout paintLayout = (LinearLayout)findViewById(R.id.paint_colors);
         currPaint = (ImageButton)paintLayout.getChildAt(0);
@@ -51,23 +58,6 @@ public class MainActivity extends AppCompatActivity implements OnClickListener{
         newBtn.setOnClickListener(this);
         saveBtn = (ImageButton)findViewById(R.id.save_btn);
         saveBtn.setOnClickListener(this);
-             /*   mService.connectToServer(ip_et.getText().toString());
-        setRemoteRequestClientOn(true);
-        ArrayList<Device> list_device = new ArrayList<Device>();
-        Device d = new Device(ip_et.getText().toString(), "30", "aa", 1, 1);
-        //		        d.setAllowedResources(new int[]{1,1,1,1,1,1,1});
-        d.setAskedResources(new int[]{1,1,1,1,1,1,1});
-        list_device.add(d);
-        IRemoteService remoteService = IRemoteService.Stub.asInterface(ServiceManager.getService(Context.REMOTE_SERVICE));
-        try {
-            remoteService.sendResourceRequests(list_device);
-            }
-            catch (SettingNotFoundException e) {
-                e.printStackTrace();
-            }
-            catch (RemoteException re){
-                re.printStackTrace();
-            }*/
     }
     @Override
     public void onClick(View view){
@@ -76,7 +66,7 @@ public class MainActivity extends AppCompatActivity implements OnClickListener{
             //new button
             AlertDialog.Builder newDialog = new AlertDialog.Builder(this);
             newDialog.setTitle("New drawing");
-            newDialog.setMessage("Start new drawing (you will lose the current drawing)?");
+            newDialog.setMessage("Start new poster (Any unsaved work will be lost)?");
             newDialog.setPositiveButton("Yes", new DialogInterface.OnClickListener(){
                 public void onClick(DialogInterface dialog, int which){
                     drawView.startNew();
@@ -92,7 +82,6 @@ public class MainActivity extends AppCompatActivity implements OnClickListener{
         }
         else if(view.getId()==R.id.draw_btn){
             //draw button clicked
-            System.out.println("hi");
             final Dialog brushDialog = new Dialog(this);
             drawView.setErase(false);
             drawView.setBrushSize(drawView.getLastBrushSize());
@@ -128,25 +117,12 @@ public class MainActivity extends AppCompatActivity implements OnClickListener{
             });
 
             Button textBtn = (Button)brushDialog.findViewById(R.id.text_btn);
-            final Dialog textDialog = new Dialog(this);
-            textDialog.setTitle("Textbox input: ");
-            textDialog.setContentView(R.layout.text_input);
             textBtn.setOnClickListener(new OnClickListener(){
                 @Override
                 public void onClick(View v) {
+                    drawView.setContext(MainActivity.this);
+                    drawView.setText();
                     brushDialog.dismiss();
-                    textDialog.show();
-                }
-            });
-            Button enterTxt = (Button)textDialog.findViewById(R.id.enter_text);
-            enterTxt.setOnClickListener(new OnClickListener() {
-                @Override
-                public void onClick(View v) {
-                    EditText edit = textDialog.findViewById(R.id.text_view);
-                    String inputText = edit.getText().toString();
-                    Log.d("input text; ",inputText);
-                    drawView.setText(inputText);
-                    textDialog.dismiss();
                 }
             });
             brushDialog.show();
@@ -231,5 +207,15 @@ public class MainActivity extends AppCompatActivity implements OnClickListener{
             currPaint.setImageDrawable(getResources().getDrawable(R.drawable.paint));
             currPaint=(ImageButton)view;
         }
+    }
+
+    private void setRemoteRequestServerOn(boolean enabling)
+    {
+        Settings.Global.putInt(mContext.getContentResolver(), "REMOTE_REQUEST_SERVER_ON", enabling ? 1 : 0);
+    }
+
+    private void setRemoteRequestClientOn(boolean enabling)
+    {
+        Settings.Global.putInt(mContext.getContentResolver(), "REMOTE_REQUEST_CLIENT_ON", enabling ? 1 : 0);
     }
 }
